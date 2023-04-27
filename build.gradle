@@ -1,0 +1,159 @@
+/*
+ * Copyright © 2017-2023  Kynetics  LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+import java.util.function.BinaryOperator
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    ext{
+        kotlin_version = '1.6.10'
+    }
+    repositories {
+        google()
+        mavenLocal()
+    }
+
+    dependencies {
+        classpath 'com.android.tools.build:gradle:7.1.1'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlin_version"
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+plugins {
+    id "io.gitlab.arturbosch.detekt" version "1.0.0-RC16"
+    id "org.jetbrains.dokka" version "1.7.10"
+    id 'org.ajoberstar.grgit' version '5.0.0'
+
+    // ... another plugins
+}
+
+apply from: 'gradle/grgit.gradle'
+
+detekt {
+    config = files("$rootDir/default-detekt-config.yml", "$rootDir/detekt-config.yml")
+    toolVersion = "1.0.0-RC16"
+    input = files("$projectDir")
+    filters = ".*/resources/.*,.*/build/.*"
+}
+
+ext{
+    //dependencies
+    supportLibraryVersion = '28.0.0'
+
+}
+
+allprojects {
+    apply from: "$rootDir/ktlint.gradle"
+
+    repositories {
+        google()
+        mavenLocal()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+String getBody(url) {
+    def connection = new URL(url).openConnection()
+    connection.requestMethod = 'GET'
+    try {
+        if(connection.responseCode == 200 ){
+            new BufferedReader(new InputStreamReader(connection.getInputStream()))
+                    .lines().reduce(new BinaryOperator<String>() {
+                @Override
+                String apply(String s, String s2) {
+                    println "${s} \n${s2}"
+                    return "${s} \n${s2}"
+                }
+            }).orElse("{}")
+        } else if(connection.responseCode == 404 ){
+            "\"status\":\"NotFound\""
+        } else {
+            "{}"
+        }
+    } catch (IOException error) {
+        ""
+    }
+}
+
+task checkJitpackBuild(){
+    group 'Jitpack'
+
+    doLast {
+        def url = "https://jitpack.io/api/builds/com.github.Kynetics/uf-android-client/${versionFromGit(project)}"
+        def attempts = 10
+        def body = "{}"
+        while (attempts > 0 && !(body.length() > 5)){
+            body = getBody(url)
+            if(body.contains("\"status\":\"NotFound\"")){
+                body = getBody(url.toLowerCase())
+            }
+            if(body.length() < 5){
+                println "Waiting for ${url}, attempts remaning ${--attempts} ..."
+                sleep(30000)
+            }
+        }
+
+        if(body.contains("\"status\":\"Error\"")){
+            throw new IllegalStateException("jitpack build fails!")
+        } else if(body.contains("\"status\":\"NotFound\"")){
+            throw new IllegalStateException("jitpack build fails! Tag not found")
+        } else if(body.contains("\"status\":\"ok\"")){
+            println "jitpack build works!"
+        } else {
+            throw new IllegalStateException("jitpack build timeout!")
+        }
+
+    }
+
+}
+
+void configureDokka(String taskName, Project pr){
+    def currentYear = new Date().getYear() + 1900
+
+    if(pr.tasks.findByName(taskName)) {
+        pr.tasks.named(taskName).configure {
+            pluginsMapConfiguration.set(
+                    [
+                            "org.jetbrains.dokka.base.DokkaBase": """{
+                                "footerMessage": "Copyright @ $currentYear Kynetics"
+                            }"""
+                    ]
+            )
+        }
+    }
+}
+
+def dokkaProjects = ['uf-client-service-api']
+configureDokka('dokkaHtmlMultiModule', project)
+
+subprojects{
+    if(dokkaProjects.contains(it.name)){
+        apply plugin: "org.jetbrains.dokka"
+        it.afterEvaluate {
+            configureDokka('dokkaHtml', it)
+            configureDokka('dokkaHtmlPartial', it)
+        }
+    }
+}
