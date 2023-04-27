@@ -1,0 +1,39 @@
+name: build-action
+
+on:
+  push:
+    tags:
+      - '*'
+    branches-ignore:
+      - 'gh-pages'
+  pull_request:
+    tags:
+      - '*'
+    branches-ignore:
+      - 'gh-pages'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Gradle build
+        env:
+          KYNETICS_KEYSTORE_PASS: ${{ secrets.KYNETICS_KEYSTORE_PASS }}
+          KYNETICS_KEY_PASS: ${{ secrets.KYNETICS_KEY_PASS }}
+          KYNETICS_KEY_ALIAS: ${{ secrets.KYNETICS_KEY_ALIAS }}
+
+        run: ./gradlew build
+      - name: Create release
+        uses: xresloader/upload-to-github-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          file: "uf-client-*/build/outputs/apk/*_key/*.apk"
+          tags: true
+          draft: false

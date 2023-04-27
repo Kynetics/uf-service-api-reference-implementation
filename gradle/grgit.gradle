@@ -1,0 +1,36 @@
+/*
+ * Copyright © 2017-2023  Kynetics  LLC
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v2.0
+ * which accompanies this distribution, and is available at
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+ext {
+    versionFromGit = { prj ->
+        def gitversion = "none"
+        try {
+            gitversion = grgit.describe(tags: true) ?: grgit.head().getAbbreviatedId(7)
+        } catch (Exception ex) {
+            logger.error(ex.toString())
+        }
+        return gitversion
+    }
+
+    differentVersions = subprojects.collectEntries {
+        [versionFromGit(it), it]
+    }
+
+    firstVersion = differentVersions.keySet().first()
+}
+
+
+task showVersions {
+    group 'uf'
+    doLast {
+        subprojects.each {
+            println it.name + ": Building version " + versionFromGit(it)
+        }
+    }
+}
