@@ -1,6 +1,6 @@
-<h2 align="center">UFAndroidClientExampleUI</h2>
+<h2 align="center">UF Service Api Reference Implementation</h2>
 <p align="center">
-<a href="https://github.com/Kynetics/uf-android-client/actions/workflows/pipeline-build.yml"><img alt="Build Status" src="https://github.com/Kynetics/uf-android-client/actions/workflows/pipeline-build.yml/badge.svg"></a>
+<a href="https://github.com/Kynetics/uf-service-api-reference-implementation/actions/workflows/pipeline-build.yml"><img alt="Build Status" src="https://github.com/Kynetics/uf-service-api-reference-implementation/actions/workflows/pipeline-build.yml/badge.svg"></a>
 <a href="http://www.apache.org/licenses/LICENSE-2.0"><img alt="License" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
 </p>
 
