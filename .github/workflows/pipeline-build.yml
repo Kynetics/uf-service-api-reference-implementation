@@ -4,13 +4,9 @@ on:
   push:
     tags:
       - '*'
-    branches-ignore:
-      - 'gh-pages'
   pull_request:
     tags:
       - '*'
-    branches-ignore:
-      - 'gh-pages'
 
 jobs:
   build:
@@ -34,6 +30,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          file: "uf-client-*/build/outputs/apk/*_key/*.apk"
+          file: "uf-service-*/build/outputs/apk/*_key/*.apk"
           tags: true
           draft: false
