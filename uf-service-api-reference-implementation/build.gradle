@@ -18,7 +18,7 @@ import java.util.function.Predicate
 
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
-apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdk 30
@@ -34,6 +34,10 @@ android {
 
     dataBinding {
         enabled = true
+    }
+
+    buildFeatures {
+        viewBinding true
     }
 
     sourceSets {

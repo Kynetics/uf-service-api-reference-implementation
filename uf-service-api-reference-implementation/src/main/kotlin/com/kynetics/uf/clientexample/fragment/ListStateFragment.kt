@@ -28,8 +28,8 @@ import com.kynetics.uf.clientexample.activity.MainActivity
 import com.kynetics.uf.clientexample.data.MessageHistory
 import com.kynetics.uf.clientexample.data.MessageHistory.CAPACITY
 import com.kynetics.uf.clientexample.data.toDate
-import kotlinx.android.synthetic.main.state_list_content.view.*
-import kotlinx.android.synthetic.main.state_list_fragment.view.*
+import com.kynetics.uf.clientexample.databinding.StateListContentBinding
+import com.kynetics.uf.clientexample.databinding.StateListFragmentBinding
 import kotlin.math.min
 
 class ListStateFragment : androidx.fragment.app.Fragment(), UFServiceInteractionFragment {
@@ -37,6 +37,7 @@ class ListStateFragment : androidx.fragment.app.Fragment(), UFServiceInteraction
     var twoPane = false
     var selectedItem = -1
     var currentSize = 0
+    var binding: StateListFragmentBinding? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,11 +59,9 @@ class ListStateFragment : androidx.fragment.app.Fragment(), UFServiceInteraction
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-
-        val rootView = inflater.inflate(R.layout.state_list_fragment, container, false)
-
-        setupRecyclerView(rootView.state_list_recycler_view)
-        return rootView
+        binding = StateListFragmentBinding.inflate(inflater, container, false)
+        setupRecyclerView(binding!!.stateListRecyclerView)
+        return binding?.root
     }
 
     var adapter: SimpleItemRecyclerViewAdapter? = null
@@ -111,10 +110,9 @@ class ListStateFragment : androidx.fragment.app.Fragment(), UFServiceInteraction
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context)
-                    .inflate(R.layout.state_list_content, parent, false)
-
-            return ViewHolder(view)
+            val itemBinding = StateListContentBinding.inflate(
+                layoutInflater, parent, false)
+            return ViewHolder(itemBinding)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -137,10 +135,11 @@ class ListStateFragment : androidx.fragment.app.Fragment(), UFServiceInteraction
 
         override fun getItemCount() = values.size
 
-        inner class ViewHolder(view: View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
-            val idView: TextView = view.date_text
-            val contentView: TextView = view.state_name
-            val badge: TextView = view.unread_event
+        inner class ViewHolder(binding: StateListContentBinding)
+            : androidx.recyclerview.widget.RecyclerView.ViewHolder(binding.root) {
+            val idView: TextView = binding.dateText
+            val contentView: TextView = binding.stateName
+            val badge: TextView = binding.unreadEvent
         }
     }
 

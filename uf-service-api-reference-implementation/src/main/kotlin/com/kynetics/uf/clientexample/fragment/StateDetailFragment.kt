@@ -21,14 +21,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import androidx.databinding.DataBindingUtil
 import com.kynetics.uf.android.api.v1.UFServiceMessageV1
-import com.kynetics.uf.clientexample.R
 import com.kynetics.uf.clientexample.data.MessageHistory
 import com.kynetics.uf.clientexample.data.format
 import com.kynetics.uf.clientexample.data.percentFormat
 import com.kynetics.uf.clientexample.databinding.StateDetailBinding
-import kotlinx.android.synthetic.main.state_detail.view.*
 import kotlin.math.pow
 
 /**
@@ -65,17 +62,15 @@ class StateDetailFragment : androidx.fragment.app.Fragment(), UFServiceInteracti
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-
-        binding = DataBindingUtil.inflate<StateDetailBinding>(
-                inflater, R.layout.state_detail, container, false)
+        binding = StateDetailBinding.inflate(inflater, container, false)
         val view = binding!!.root
         // here data must be an instance of the class MarsDataProvider
         if (item != null) {
             binding!!.data = item!!
             adapter = ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, item!!.events)
-            view.events_list.adapter = adapter
+            binding!!.eventsList.adapter = adapter
         }
-        binding!!.root.details_list?.adapter
+        binding!!.detailsList.adapter
         customizeCardView()
         return view
     }
@@ -110,10 +105,10 @@ class StateDetailFragment : androidx.fragment.app.Fragment(), UFServiceInteracti
         when (item!!.state) {
             is UFServiceMessageV1.State.Downloading -> {
                 stateDetail = StateDetail(item!!.state as UFServiceMessageV1.State.Downloading)
-                binding?.root?.details_title?.text = "Files to download:"
-                binding?.root?.details_title?.visibility = View.VISIBLE
-                binding?.root?.details_list?.visibility = View.VISIBLE
-                binding?.root?.details_list?.adapter =
+                binding?.detailsTitle?.text = "Files to download:"
+                binding?.detailsTitle?.visibility = View.VISIBLE
+                binding?.detailsList?.visibility = View.VISIBLE
+                binding?.detailsList?.adapter =
                     ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1, stateDetail!!.details)
 
                 item!!.events.forEach {
@@ -122,7 +117,7 @@ class StateDetailFragment : androidx.fragment.app.Fragment(), UFServiceInteracti
             }
 
             else -> {
-                binding?.root?.details_list?.adapter =
+                binding?.detailsList?.adapter =
                     ArrayAdapter(requireContext(), android.R.layout.simple_list_item_1,
                         listOf<String>())
             }
@@ -132,7 +127,7 @@ class StateDetailFragment : androidx.fragment.app.Fragment(), UFServiceInteracti
     private fun updateDetails(key: String, percent: Double) {
         if (stateDetail?.containsKey(key) == true) {
             stateDetail?.updateDetail(key, percent)
-            (binding?.root?.details_list?.adapter as ArrayAdapter<*>).notifyDataSetChanged()
+            (binding?.detailsList?.adapter as ArrayAdapter<*>).notifyDataSetChanged()
         }
     }
 

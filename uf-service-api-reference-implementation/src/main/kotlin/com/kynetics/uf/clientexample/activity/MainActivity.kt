@@ -45,10 +45,10 @@ import com.kynetics.uf.android.api.v1.UFServiceMessageV1
 import com.kynetics.uf.clientexample.BuildConfig
 import com.kynetics.uf.clientexample.R
 import com.kynetics.uf.clientexample.data.MessageHistory
+import com.kynetics.uf.clientexample.databinding.ActivityMainBinding
 import com.kynetics.uf.clientexample.fragment.ListStateFragment
 import com.kynetics.uf.clientexample.fragment.MyAlertDialogFragment
 import com.kynetics.uf.clientexample.fragment.UFServiceInteractionFragment
-import kotlinx.android.synthetic.main.state_list.*
 import java.lang.ref.WeakReference
 import java.util.*
 import kotlin.concurrent.timer
@@ -348,6 +348,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun initAccordingScreenSize() {
+        val state_detail_container = findViewById<View>(R.id.state_detail_container)
         twoPane = state_detail_container != null
         val listStateFragment = ListStateFragment().apply {
             arguments = Bundle().apply {
