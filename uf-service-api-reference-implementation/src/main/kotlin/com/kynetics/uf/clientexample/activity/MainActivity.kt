@@ -169,6 +169,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val mToolbar = findViewById<Toolbar>(R.id.my_toolbar)
         setSupportActionBar(mToolbar)
+        supportActionBar?.title = getString(R.string.app_title)
 
         val toggle = ActionBarDrawerToggle(
             this, drawer, mToolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)

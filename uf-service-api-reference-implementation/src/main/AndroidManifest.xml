@@ -28,9 +28,9 @@
 
         <activity
             android:name=".activity.MainActivity"
-            android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBar"
-            android:windowSoftInputMode="stateHidden">
+            android:windowSoftInputMode="stateHidden"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
