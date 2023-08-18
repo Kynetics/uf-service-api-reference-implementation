@@ -2,11 +2,11 @@ name: build-action
 
 on:
   push:
+    branches:
+      - '*'
     tags:
       - '*'
   pull_request:
-    tags:
-      - '*'
 
 jobs:
   build:
