@@ -29,25 +29,25 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.snackbar.Snackbar
 import com.kynetics.uf.android.api.Communication
+import com.kynetics.uf.android.api.UFServiceConfigurationV2
 import com.kynetics.uf.android.api.UFServiceInfo
 import com.kynetics.uf.android.api.toOutV1Message
 import com.kynetics.uf.android.api.v1.UFServiceMessageV1
 import com.kynetics.uf.clientexample.BuildConfig
 import com.kynetics.uf.clientexample.R
 import com.kynetics.uf.clientexample.data.MessageHistory
-import com.kynetics.uf.clientexample.databinding.ActivityMainBinding
 import com.kynetics.uf.clientexample.fragment.ListStateFragment
-import com.kynetics.uf.clientexample.fragment.MyAlertDialogFragment
 import com.kynetics.uf.clientexample.fragment.UFServiceInteractionFragment
 import java.lang.ref.WeakReference
 import java.util.*
@@ -65,19 +65,20 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     /** Messenger for communicating with service.  */
     internal var mService: Messenger? = null
+
     /** Flag indicating whether we have called bind on the service.  */
     internal var mIsBound: Boolean by Delegates.observable(false) { _, old, new ->
         when {
             new == old -> {}
 
             new -> {
-                mSnackbarServiceDisconnect?.dismiss()
+                serviceDisconnectSnackBar?.dismiss()
                 timer?.purge()
                 timer?.cancel()
             }
 
             !new -> {
-                mSnackbarServiceDisconnect?.show()
+                serviceDisconnectSnackBar?.show()
                 timer = timer(
                     name = "Service Reconnection",
                     initialDelay = 5_000,
@@ -91,11 +92,14 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private var mSnackbarServiceDisconnect: Snackbar? = null
+    private var serviceDisconnectSnackBar: Snackbar? = null
+    private var authSnackBar: Snackbar? = null
+    private var authWarningSnackBar: Snackbar? = null
+
     /**
      * Target we publish for clients to send messages to IncomingHandler.
      */
-    internal val mMessenger:Messenger by lazy {
+    internal val mMessenger: Messenger by lazy {
         Messenger(IncomingHandler(this))
     }
     private var mServiceExist = false
@@ -131,7 +135,6 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private var mResumeUpdateFab: FloatingActionButton? = null
     private var mNavigationView: NavigationView? = null
 
     private fun handleRemoteException(body: () -> Unit) {
@@ -143,15 +146,18 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
-    private fun NavigationView.configure(listener: NavigationView.OnNavigationItemSelectedListener) {
+    private fun NavigationView.configure(
+        listener: NavigationView.OnNavigationItemSelectedListener) {
         mNavigationView!!.setNavigationItemSelectedListener(listener)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val textViewUiVersion = findViewById<TextView>(R.id.ui_version)
         val textViewServiceVersion = findViewById<TextView>(R.id.service_version)
-        textViewUiVersion.text = String.format(getString(R.string.ui_version), BuildConfig.VERSION_NAME)
+        textViewUiVersion.text =
+            String.format(getString(R.string.ui_version), BuildConfig.VERSION_NAME)
         try {
             val info = packageManager.getPackageInfo(UFServiceInfo.SERVICE_PACKAGE_NAME, 0)
-            textViewServiceVersion.text = String.format(getString(R.string.service_version), info.versionName)
+            textViewServiceVersion.text =
+                String.format(getString(R.string.service_version), info.versionName)
         } catch (e: PackageManager.NameNotFoundException) {
             textViewServiceVersion.visibility = View.GONE
         }
@@ -160,28 +166,23 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        mResumeUpdateFab = findViewById(R.id.fab_resume_update)
-        mResumeUpdateFab!!.setOnClickListener { _ ->
-            handleRemoteException {
-                mService?.send(Communication.V1.In.ForcePing.toMessage())
-            }
-        }
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val mToolbar = findViewById<Toolbar>(R.id.my_toolbar)
         setSupportActionBar(mToolbar)
         supportActionBar?.title = getString(R.string.app_title)
 
         val toggle = ActionBarDrawerToggle(
-            this, drawer, mToolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close)
+            this, drawer, mToolbar, R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close)
         drawer.addDrawerListener(toggle)
         toggle.syncState()
         val navigationViewWrapper: NavigationView = findViewById(R.id.nav_view_wrapper)
         mNavigationView = navigationViewWrapper.findViewById(R.id.nav_view)
 
-        mSnackbarServiceDisconnect = Snackbar.make(findViewById<View>(R.id.coordinatorLayout),
+        serviceDisconnectSnackBar = Snackbar.make(findViewById(R.id.coordinatorLayout),
             R.string.service_disconnected, Snackbar.LENGTH_INDEFINITE)
 
-        mSnackbarServiceDisconnect?.show()
+        serviceDisconnectSnackBar?.show()
 
         navigationViewWrapper.configure(this)
         initAccordingScreenSize()
@@ -207,12 +208,11 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        val id = item.itemId
-        when (id) {
+        when (item.itemId) {
 
             R.id.menu_settings -> {
                 val settingsIntent = Intent(UFServiceInfo.ACTION_SETTINGS)
-                startActivity(settingsIntent)
+                settingActivityResultLauncher.launch(settingsIntent)
             }
 
             R.id.force_ping -> {
@@ -230,19 +230,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         return true
     }
 
-    fun sendPermissionResponse(response: Boolean) {
+    private fun sendPermissionResponse() {
         handleRemoteException {
-            mService?.send(Communication.V1.In.AuthorizationResponse(response).toMessage())
+            mService?.send(Communication.V1.In.AuthorizationResponse(true).toMessage())
+        }
+    }
+
+    private var settingActivityResultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()) { _ ->
+        syncWithUfService()
+    }
+
+    private fun syncWithUfService() {
+        handleRemoteException {
+            mService?.send(Communication.V1.In.Sync(mMessenger).toMessage())
         }
     }
 
     /**
      * Handler of incoming messages from service.
      */
-    internal class IncomingHandler(mainActivity: MainActivity) : Handler(Looper.getMainLooper()) {
+    internal class IncomingHandler(mainActivity: MainActivity) :
+        Handler(Looper.getMainLooper()) {
         private val activityRef = WeakReference(mainActivity)
+        private var currentConfiguration: UFServiceConfigurationV2? = null
 
-        private fun <T>WeakReference<T>.execute(action: T.() -> Unit){
+        private fun <T> WeakReference<T>.execute(action: T.() -> Unit) {
             get()?.let { ref ->
                 ref.action()
             }
@@ -253,13 +266,17 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 @Suppress("DEPRECATION")
                 when (val v1Msg = msg.toOutV1Message()) {
 
-                    is Communication.V1.Out.CurrentServiceConfiguration -> handleServiceConfigurationMsg(v1Msg)
+                    is Communication.V1.Out.CurrentServiceConfiguration ->
+                        handleServiceConfigurationMsg(v1Msg)
 
-                    is Communication.V1.Out.AuthorizationRequest -> handleAuthorizationRequestMsg(v1Msg)
+                    is Communication.V1.Out.AuthorizationRequest ->
+                        handleAuthorizationRequestMsg(v1Msg)
 
-                    is Communication.V1.Out.ServiceNotification -> handleServiceNotificationMsg(v1Msg)
+                    is Communication.V1.Out.ServiceNotification ->
+                        handleServiceNotificationMsg(v1Msg)
 
-                    is Communication.V1.Out.CurrentServiceConfigurationV2 -> handleServiceConfigurationV2Msg(v1Msg)
+                    is Communication.V1.Out.CurrentServiceConfigurationV2 ->
+                        handleServiceConfigurationV2Msg(v1Msg)
                 }
             }.onFailure {
                 Log.w(TAG, "Cannot handle the $msg message", it)
@@ -270,42 +287,29 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             @Suppress("DEPRECATION")
             currentServiceConfiguration: Communication.V1.Out.CurrentServiceConfiguration
         ) {
-           Log.i(TAG, currentServiceConfiguration.conf.toString())
+            Log.i(TAG, currentServiceConfiguration.conf.toString())
         }
 
         private fun handleServiceConfigurationV2Msg(
             currentServiceConfiguration: Communication.V1.Out.CurrentServiceConfigurationV2
         ) {
+            currentConfiguration = currentServiceConfiguration.conf
             Log.i(TAG, currentServiceConfiguration.conf.toString())
         }
 
-
-
-        private fun handleAuthorizationRequestMsg(authRequest: Communication.V1.Out.AuthorizationRequest) =
+        private fun handleAuthorizationRequestMsg(
+            authRequest: Communication.V1.Out.AuthorizationRequest) =
             activityRef.execute {
-                try{
-                    val newFragment = MyAlertDialogFragment.newInstance(authRequest.authName)
-                    newFragment.show(supportFragmentManager, null)
-                } catch (e:IllegalStateException){
-                    Log.w(TAG, "Error on show alert dialog", e)
-                }
+                showAuthorizationDialog(authRequest.authName)
             }
 
-        private fun handleServiceNotificationMsg(serviceNotification: Communication.V1.Out.ServiceNotification) =
+        private fun handleServiceNotificationMsg(
+            serviceNotification: Communication.V1.Out.ServiceNotification) =
             activityRef.execute {
                 val content = serviceNotification.content
                 when (content) {
                     is UFServiceMessageV1.Event -> {
-                        post {
-                            if (!MessageHistory.appendEvent(content)) {
-                                Toast.makeText(
-                                    applicationContext,
-                                    content.name.toString(),
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-
-                        }
+                        addEventToMessageHistory(content)
                     }
 
                     is UFServiceMessageV1.State -> {
@@ -320,20 +324,95 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 when (content) {
                     is UFServiceMessageV1.State.WaitingDownloadAuthorization,
                     UFServiceMessageV1.State.WaitingUpdateAuthorization -> {
-                        mResumeUpdateFab!!.setImageResource(iconByMessageName.getValue(content.name))
-                        mResumeUpdateFab!!.show()
+                        handleAuthorizationsState(content)
                     }
 
-                    is UFServiceMessageV1.State -> mResumeUpdateFab!!.hide()
+                    is UFServiceMessageV1.State -> {
+                        authSnackBar?.dismiss()
+                        authWarningSnackBar?.dismiss()
+                    }
 
-                    else -> { }
+                    else -> {}
                 }
             }
 
-        private val iconByMessageName = mapOf(
-            UFServiceMessageV1.MessageName.WAITING_DOWNLOAD_AUTHORIZATION to R.drawable.ic_get_app_black_48dp,
-            UFServiceMessageV1.MessageName.WAITING_UPDATE_AUTHORIZATION to R.drawable.ic_loop_black_48dp
-        )
+        private fun MainActivity.handleAuthorizationsState(event: UFServiceMessageV1) {
+            val authName =
+                if (event is UFServiceMessageV1.State.WaitingDownloadAuthorization) {
+                    "download"
+                } else {
+                    "update"
+                }
+            if (!isApiModeOn() && !isUfServiceNew()) {
+                showAuthWarningSnackBar()
+            } else {
+                showAuthSnackBar(authName)
+            }
+        }
+
+        private fun Context.addEventToMessageHistory(event: UFServiceMessageV1.Event) {
+            post {
+                if (!MessageHistory.appendEvent(event)) {
+                    Toast.makeText(
+                        applicationContext,
+                        event.name.toString(),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+
+        private fun isApiModeOn(): Boolean {
+            return currentConfiguration?.isApiMode ?: false
+        }
+
+        private fun MainActivity.showAuthorizationDialog(authType: String) {
+            val builder: AlertDialog.Builder = AlertDialog.Builder(this)
+            val titleResource = resources.getIdentifier(String.format("%s_%s",
+                authType.lowercase(), "title"),
+                "string", packageName)
+            val contentResource = resources.getIdentifier(String.format("%s_%s",
+                authType.lowercase(), "content"),
+                "string", packageName)
+            builder.apply {
+                setTitle(titleResource)
+                setMessage(contentResource)
+                setCancelable(false)
+                setPositiveButton(android.R.string.ok) { _, _ ->
+                    sendPermissionResponse()
+                }
+                setNegativeButton(R.string.close) { _, _ ->
+                }
+            }
+
+            val dialog: AlertDialog = builder.create()
+            dialog.show()
+        }
+    }
+
+    private fun showAuthSnackBar(authType: String) {
+        val content = getString(R.string.auth_request_toast_message, authType)
+        val toolbarView = findViewById<View>(R.id.my_toolbar)
+        authSnackBar = Snackbar.make(toolbarView, content, Snackbar.LENGTH_INDEFINITE)
+            .setAction(R.string.action_grant) {
+                sendPermissionResponse()
+            }
+        authSnackBar?.show()
+    }
+
+    private fun showAuthWarningSnackBar() {
+        val toolbarView = findViewById<View>(R.id.my_toolbar)
+        authWarningSnackBar = Snackbar.make(toolbarView, R.string.auth_request_warning,
+            Snackbar.LENGTH_INDEFINITE)
+        authWarningSnackBar?.show()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun isUfServiceNew(): Boolean {
+        val ufServicePackage =
+            packageManager.getPackageInfo(UFServiceInfo.SERVICE_PACKAGE_NAME, 0)
+        val ufServiceVersionCode = ufServicePackage.versionCode
+        return ufServiceVersionCode >= 10600
     }
 
     fun changePage(fragment: Fragment, addToBackStack: Boolean = true) {
@@ -348,8 +427,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     }
 
     private fun initAccordingScreenSize() {
-        val state_detail_container = findViewById<View>(R.id.state_detail_container)
-        twoPane = state_detail_container != null
+        val stateDetailContainer = findViewById<View>(R.id.state_detail_container)
+        twoPane = stateDetailContainer != null
         val listStateFragment = ListStateFragment().apply {
             arguments = Bundle().apply {
                 putBoolean(ListStateFragment.ARG_TWO_PANE, this@MainActivity.twoPane)
@@ -383,7 +462,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         intent.flags = FLAG_INCLUDE_STOPPED_PACKAGES
         val serviceExist = bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
         if (!serviceExist && !mServiceExist) {
-            Toast.makeText(applicationContext, "UpdateFactoryService not found", Toast.LENGTH_LONG).show()
+            Toast.makeText(applicationContext, "UpdateFactoryService not found",
+                Toast.LENGTH_LONG).show()
             unbindService(mConnection)
             this.finish()
         } else {
