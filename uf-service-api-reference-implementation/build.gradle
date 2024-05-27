@@ -28,7 +28,7 @@ android {
         minSdkVersion 24
         //noinspection ExpiredTargetSdkVersion
         targetSdkVersion 31
-        versionCode 35
+        versionCode 10600
         versionName versionFromGit(project)
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -88,6 +88,12 @@ android {
         debug{
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    applicationVariants.configureEach { variant ->
+        variant.outputs.configureEach {
+            outputFileName = new File("uf-service-api-reference-implementation-${versionFromGit(project)}-${variant.buildType.name}.apk")
         }
     }
 
