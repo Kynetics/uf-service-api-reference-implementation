@@ -38,6 +38,7 @@ import androidx.core.view.GravityCompat
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.fragment.app.Fragment
 import com.google.android.material.navigation.NavigationView
+import com.google.android.material.snackbar.BaseTransientBottomBar
 import com.google.android.material.snackbar.Snackbar
 import com.kynetics.uf.android.api.Communication
 import com.kynetics.uf.android.api.UFServiceConfigurationV2
@@ -394,6 +395,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val content = getString(R.string.auth_request_toast_message, authType)
         val toolbarView = findViewById<View>(R.id.my_toolbar)
         authSnackBar = Snackbar.make(toolbarView, content, Snackbar.LENGTH_INDEFINITE)
+            .setBehavior(NoSwipeBehavior())
             .setAction(R.string.action_grant) {
                 sendPermissionResponse()
             }
@@ -404,6 +406,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val toolbarView = findViewById<View>(R.id.my_toolbar)
         authWarningSnackBar = Snackbar.make(toolbarView, R.string.auth_request_warning,
             Snackbar.LENGTH_INDEFINITE)
+            .setBehavior(NoSwipeBehavior())
         authWarningSnackBar?.show()
     }
 
@@ -487,6 +490,13 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             mIsBound = false
         }
     }
+
+    internal class NoSwipeBehavior : BaseTransientBottomBar.Behavior() {
+        override fun canSwipeDismissView(child: View): Boolean {
+            return false
+        }
+    }
+
 
     companion object {
         private val TAG = MainActivity::class.java.simpleName
