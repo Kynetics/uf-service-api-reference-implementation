@@ -7,6 +7,6 @@
 Android application that allows to configure, manage and monitor the [UF Android Client Service](https://github.com/Kynetics/uf-android-client) from a simple Android User Interface. The app provides a third-party integration reference code for customers integrating [Update Factory](https://docs.updatefactory.io/) in their own application.
 
 ## License
-Copyright © 2017-2023, [Kynetics LLC](https://www.kynetics.com).
+Copyright © 2017-2024, [Kynetics Inc.](https://www.kynetics.com).
 
 Released under the [Apache v2.0 License](https://www.apache.org/licenses/LICENSE-2.0).
