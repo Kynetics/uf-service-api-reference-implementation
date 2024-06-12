@@ -20,7 +20,7 @@
     <string name="download_title">New update available</string>
     <string name="download_content">New update is available to download.\nUpdates include new features, improvements and bug fixes.\nClick OK to download the update now.</string>
     <string name="update_title">Update Authorization</string>
-    <string name="update_content">The upgrade is ready, click OK to upgrade now.\nThe device will be restarted during the upgrade process.</string>
+    <string name="update_content">The upgrade is ready, click OK to upgrade now.\nThe device may reboot during the upgrade process.</string>
     <string name="auth_request_toast_message">The update process is awaiting authorization for \'%s\'.</string>
     <string name="action_grant">Grant</string>
     <string name="auth_request_warning">As the installed UF Android Service version is &lt; v1.6.0, if the authorization request for download or update is denied, a reboot or a force ping are required to be able to grant the authorization.</string>
