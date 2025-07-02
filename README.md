@@ -7,6 +7,6 @@
 Android application that allows to configure, manage and monitor the [UF Android Service](https://docs.updatefactory.io/devices/android/android-service/) from a simple Android User Interface. The app provides a third-party integration reference code for customers integrating [Update Factory](https://docs.updatefactory.io/) in their own application.
 
 ## License
-Copyright © 2017-2024, [Kynetics Inc.](https://www.kynetics.com).
+Copyright © 2017-2025, [Kynetics Inc.](https://www.kynetics.com).
 
 Released under the [Apache v2.0 License](https://www.apache.org/licenses/LICENSE-2.0).
